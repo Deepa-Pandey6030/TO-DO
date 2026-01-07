@@ -1,13 +1,12 @@
 import express from "express"
-import notesRoutes from "./routes/notesRoutes.js"
+import notesRoutes from "./routes/notesRoutes.js";
+import authRoutes from "./routes/authRoutes.js"
 import { connectDB } from "./config/db.js";
 import dotenv from "dotenv";
 import rateLimiter from "./middleware/rateLimiter.js";
 import cors from "cors";
 import path from "path";
-import authRoutes from "./routes/authRoutes.js";
-
-
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
@@ -17,18 +16,17 @@ const __dirname = path.resolve()
 
 if (process.env.NODE_ENV !== "production") {
     app.use(cors({
-        origin: "http://localhost:5173"
+        origin: "http://localhost:5173",
+        credentials: true
     }));
-
 }
 
+app.use(cookieParser());
 app.use(express.json());
 app.use(rateLimiter);
 
-app.use("/api/auth", authRoutes);
 
-
-
+app.use("/api/auth",authRoutes);
 app.use("/api/notes", notesRoutes);
 
 if (process.env.NODE_ENV === "production") {
