@@ -15,7 +15,7 @@ A full-stack task management app built with the MERN stack, featuring JWT authen
 
 ## Screenshots
 
-> Screenshots live in [`screenshots/`](./screenshots). Add your own images there (see [`screenshots/PLACEHOLDER.md`](./screenshots/PLACEHOLDER.md) for filenames) — none are included yet.
+
 
 | Dashboard | Tasks | Analytics |
 |---|---|---|
