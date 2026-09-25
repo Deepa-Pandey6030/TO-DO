@@ -1,54 +1,95 @@
-import { Routes, Route } from "react-router";
-import HomePage from "./pages/HomePage";
-import NoteDetailPage from "./pages/NoteDetailPage";
-import CreatePage from "./pages/CreatePage";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+// Public
+import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import ProtectedRoute from "./components/ProtectedRoute";
-import toast from "react-hot-toast";
+
+// Protected app pages
+import DashboardPage from "./pages/DashboardPage";
+import TasksPage from "./pages/TasksPage";
+import CreateTaskPage from "./pages/CreateTaskPage";
+import TaskDetailPage from "./pages/TaskDetailPage";
+import ImportantPage from "./pages/ImportantPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
+import ProfilePage from "./pages/ProfilePage";
 
 const App = () => {
   return (
-    <div className="relative h-full w-full">
-      <div
-        className="absolute inset-0 -z-10 h-full w-full items-center px-5 py-24 [background:
-        radial-gradient(125%_125%_at_50%_10%,#000_60%,#00FF9D40_100%)]"
-      />
-
+    <ThemeProvider>
+    <AuthProvider>
       <Routes>
-        {/* 🔓 Public routes */}
+        {/* ── Public routes ── */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
-        {/* 🔐 Protected routes */}
+        {/* ── Protected routes ── */}
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <ProtectedRoute>
-              <HomePage />
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tasks"
+          element={
+            <ProtectedRoute>
+              <TasksPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tasks/new"
+          element={
+            <ProtectedRoute>
+              <CreateTaskPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tasks/:id"
+          element={
+            <ProtectedRoute>
+              <TaskDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/important"
+          element={
+            <ProtectedRoute>
+              <ImportantPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <ProtectedRoute>
+              <AnalyticsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />
 
-        <Route
-          path="/create"
-          element={
-            <ProtectedRoute>
-              <CreatePage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/note/:id"
-          element={
-            <ProtectedRoute>
-              <NoteDetailPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </div>
+    </AuthProvider>
+    </ThemeProvider>
   );
 };
 
