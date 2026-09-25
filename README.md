@@ -1,43 +1,48 @@
 # TaskFlow
 
-TaskFlow is a full-stack task management app — organize your work, track priorities and categories, and see your progress at a glance. Built with the MERN stack (MongoDB, Express, React, Node) plus JWT authentication and Upstash-backed rate limiting.
-
-> "Organize your work. Get things done."
+A full-stack task management app built with the MERN stack, featuring JWT authentication, user-scoped CRUD, MongoDB aggregation-based analytics, and API rate limiting via Upstash Redis.
 
 ## Features
 
-- **Authentication** — register/login with email + password, passwords hashed with bcrypt, sessions handled via JWT (7-day expiry).
-- **Task management** — create, read, update, and delete tasks, each scoped to the logged-in user.
-  - Status: `TODO`, `IN_PROGRESS`, `COMPLETED`
-  - Priority: `LOW`, `MEDIUM`, `HIGH`
-  - Category: `Personal`, `Work`, `Study`, `Placement`, `Other`
-  - Optional due dates
-  - Quick status-only updates (e.g. checking a task off) without a full edit
-- **Search, filter & sort** — filter tasks by status/priority/category, search by title or description, sort by newest, oldest, or due date.
-- **Dashboard & analytics** — aggregated stats (totals, completion rate, breakdown by status/priority/category) powered by a MongoDB aggregation pipeline.
-- **Important view** — a dedicated page for high-priority tasks.
-- **Profile page** — view the logged-in user's account details.
-- **Light/dark theme** — toggle persisted via a theme context.
-- **Responsive app shell** — collapsible sidebar navigation with a mobile hamburger menu.
-- **Rate limiting** — all API requests are throttled (100 requests / 60s) using Upstash Redis to protect the backend from abuse.
+- **Authentication** — register/login with email + password (bcrypt-hashed), JWT-based sessions (7-day expiry)
+- **User-scoped task CRUD** — create, read, update, and delete tasks; every query is scoped to the authenticated user via a `userId` field and enforced in the middleware layer
+- **Status, priority & category** — tasks can be `TODO` / `IN_PROGRESS` / `COMPLETED`, `LOW` / `MEDIUM` / `HIGH` priority, and categorized (`Personal`, `Work`, `Study`, `Placement`, `Other`), with optional due dates
+- **Filtering, search & sorting** — filter by status/priority/category, search by title/description, sort by newest, oldest, or due date
+- **Analytics dashboard** — task totals, completion rate, and status/priority/category breakdowns computed with a MongoDB aggregation pipeline (`$facet`)
+- **API rate limiting** — all requests are throttled (100 requests / 60s) using Upstash Redis
+- **Light/dark theme** — toggle persisted via a React context
+- **Responsive layout** — sidebar navigation with a mobile-friendly collapsible menu
+
+## Screenshots
+
+> Screenshots live in [`screenshots/`](./screenshots). Add your own images there (see [`screenshots/PLACEHOLDER.md`](./screenshots/PLACEHOLDER.md) for filenames) — none are included yet.
+
+| Dashboard | Tasks | Analytics |
+|---|---|---|
+| ![Dashboard](./screenshots/dashboard.png) | ![Tasks](./screenshots/tasks.png) | ![Analytics](./screenshots/analytics.png) |
 
 ## Tech Stack
 
-**Frontend**
-- React 19 + Vite 7
-- React Router v6
-- Tailwind CSS + DaisyUI
-- Axios (with an auth-token request interceptor)
-- Lucide React (icons)
-- React Hot Toast (notifications)
+**Frontend:** React 19, Vite, React Router v6, Tailwind CSS + DaisyUI, Axios, Lucide React, React Hot Toast
 
-**Backend**
-- Node.js + Express 5
-- MongoDB + Mongoose
-- JSON Web Tokens (`jsonwebtoken`) for auth
-- bcryptjs for password hashing
-- Upstash Redis + `@upstash/ratelimit` for API rate limiting
-- CORS, dotenv, cookie-parser
+**Backend:** Node.js, Express 5, MongoDB + Mongoose, JSON Web Tokens, bcryptjs, Upstash Redis (`@upstash/ratelimit`)
+
+## Architecture
+
+```
+┌──────────────┐   HTTPS/JSON, JWT in    ┌──────────────┐        ┌─────────────┐
+│  React SPA   │   Authorization header  │  Express API │───────▶│   MongoDB   │
+│ (Vite build) │ ──────────────────────▶ │  (Node.js)   │        │ (Mongoose)  │
+└──────────────┘ ◀────────────────────── └──────┬───────┘        └─────────────┘
+                                                 │
+                                                 ▼
+                                         ┌───────────────┐
+                                         │ Upstash Redis │
+                                         │ (rate limiter)│
+                                         └───────────────┘
+```
+
+The React SPA calls a REST API secured with JWTs. Every task route runs through auth middleware that verifies the token and scopes all reads/writes to `req.userId`. A rate-limiting middleware checks each request against Upstash Redis before it reaches any route handler.
 
 ## Project Structure
 
@@ -69,13 +74,14 @@ TO-DO/
 │   │   ├── components/         # TaskCard, TaskForm, TaskFilters, StatsCard, ThemeToggle, ProtectedRoute
 │   │   ├── context/             # AuthContext, ThemeContext
 │   │   ├── layouts/
-│   │   │   └── AppLayout.jsx    # Sidebar shell for all protected pages
+│   │   │   └── AppLayout.jsx    # Sidebar shell for protected pages
 │   │   ├── lib/                 # axios instance, shared utils/constants
 │   │   ├── pages/                # Landing, Login, Register, Dashboard, Tasks, TaskDetail, CreateTask, Important, Analytics, Profile
 │   │   ├── services/             # authService, taskService (API calls)
 │   │   ├── App.jsx
 │   │   └── main.jsx
 │   └── package.json
+├── screenshots/                 # README images (see Screenshots section)
 └── package.json                 # Root build/start scripts for deployment
 ```
 
@@ -110,13 +116,8 @@ UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
 ### 3. Install dependencies
 
 ```bash
-# Backend
-cd backend
-npm install
-
-# Frontend
-cd ../frontend
-npm install
+cd backend && npm install
+cd ../frontend && npm install
 ```
 
 ### 4. Run in development
@@ -131,8 +132,6 @@ cd frontend
 npm run dev
 ```
 
-The frontend proxies API calls to `http://localhost:5001/api` in development.
-
 ### 5. Build for production
 
 From the project root:
@@ -142,13 +141,14 @@ npm run build   # installs deps and builds the frontend
 npm start       # starts the backend, which also serves the built frontend
 ```
 
-When `NODE_ENV=production`, the Express server serves the compiled `frontend/dist` and handles client-side routing via a catch-all route — so the whole app can be deployed as a single Node service (e.g. on Render or Railway).
+When `NODE_ENV=production`, Express serves the compiled `frontend/dist` and handles client-side routing via a catch-all route, so the app runs as a single Node service.
 
 ## API Overview
 
-All `/api/tasks` routes require a `Bearer <token>` header (obtained from login/register) and are automatically scoped to the authenticated user.
+All `/api/tasks` routes require a `Bearer <token>` header and are scoped to the authenticated user.
 
 ### Auth — `/api/auth`
+
 | Method | Endpoint | Description |
 |---|---|---|
 | POST | `/register` | Create a new account |
@@ -156,15 +156,22 @@ All `/api/tasks` routes require a `Bearer <token>` header (obtained from login/r
 | GET | `/me` | Get the current authenticated user *(protected)* |
 
 ### Tasks — `/api/tasks`
+
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/` | List tasks (supports `status`, `priority`, `category`, `search`, `sort` query params) |
+| GET | `/` | List tasks (`status`, `priority`, `category`, `search`, `sort` query params) |
 | GET | `/stats` | Aggregated task statistics (totals, completion rate, breakdowns) |
 | GET | `/:id` | Get a single task |
 | POST | `/` | Create a task |
 | PUT | `/:id` | Update a task |
 | PATCH | `/:id/status` | Update only a task's status |
 | DELETE | `/:id` | Delete a task |
+
+## Deployment
+
+The root `package.json` builds the frontend and starts the backend as a single service, which fits platforms like [Render](https://render.com) or Railway: point the build command at `npm run build` and the start command at `npm start`, then set the environment variables listed above.
+
+If deployed on Render's free tier, the service spins down after inactivity, so the first request after a while may take a few seconds to respond while it wakes up.
 
 ## License
 
